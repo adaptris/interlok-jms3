@@ -1,0 +1,141 @@
+/*
+ * Copyright 2015 Adaptris Ltd.
+ * 
+ * Licensed under the Apache License, Version 2.0 (the "License");
+ * you may not use this file except in compliance with the License.
+ * You may obtain a copy of the License at
+ * 
+ *     http://www.apache.org/licenses/LICENSE-2.0
+ * 
+ * Unless required by applicable law or agreed to in writing, software
+ * distributed under the License is distributed on an "AS IS" BASIS,
+ * WITHOUT WARRANTIES OR CONDITIONS OF ANY KIND, either express or implied.
+ * See the License for the specific language governing permissions and
+ * limitations under the License.
+*/
+
+package com.adaptris.core.jms3;
+
+import static org.junit.jupiter.api.Assertions.assertEquals;
+import static org.junit.jupiter.api.Assertions.assertTrue;
+
+import java.io.IOException;
+import java.io.InputStream;
+import java.io.ObjectInputStream;
+import java.io.ObjectOutputStream;
+import java.io.OutputStream;
+
+import jakarta.jms.Message;
+import jakarta.jms.ObjectMessage;
+import jakarta.jms.Session;
+
+import org.junit.jupiter.api.AfterAll;
+import org.junit.jupiter.api.BeforeAll;
+import org.junit.jupiter.api.Test;
+
+import com.adaptris.core.AdaptrisMessage;
+import com.adaptris.core.AdaptrisMessageFactory;
+import com.adaptris.core.jms3.activemq.EmbeddedArtemis;
+
+public class ObjectMessageTranslatorTest extends GenericMessageTypeTranslatorCase {
+
+  @BeforeAll
+  public static void setUpAll() throws Exception {
+    activeMqBroker = new EmbeddedArtemis();
+    activeMqBroker.start();
+  }
+  
+  @AfterAll
+  public static void tearDownAll() throws Exception {
+    if(activeMqBroker != null)
+      activeMqBroker.destroy();
+  }
+  
+  @Test
+  public void testObjectMessageToAdaptrisMessage() throws Exception {
+    MessageTypeTranslatorImp trans = new ObjectMessageTranslator();
+    try {
+      Session session = activeMqBroker.createConnection().createSession(false, Session.CLIENT_ACKNOWLEDGE);
+
+      ObjectMessage jmsMsg = session.createObjectMessage();
+      Exception e = new Exception("This is an Exception that was serialized");
+      e.fillInStackTrace();
+      jmsMsg.setObject(e);
+      addProperties(jmsMsg);
+      start(trans, session);
+      AdaptrisMessage msg = trans.translate(jmsMsg);
+      assertMetadata(msg);
+      Object o = readException(msg);
+      assertException(e, (Exception) o);
+    }
+    finally {
+      stop(trans);
+    }
+  }
+
+  @Test
+  public void testAdaptrisMessageToObjectMessage() throws Exception {
+    MessageTypeTranslatorImp trans = new ObjectMessageTranslator();
+    try {
+      Session session = activeMqBroker.createConnection().createSession(false, Session.CLIENT_ACKNOWLEDGE);
+      start(trans, session);
+      AdaptrisMessage msg = AdaptrisMessageFactory.getDefaultInstance().newMessage();
+      Exception e = new Exception("This is an Exception that was serialized");
+      write(e, msg);
+      addMetadata(msg);
+      Message jmsMsg = trans.translate(msg);
+      assertTrue(jmsMsg instanceof ObjectMessage);
+      assertJmsProperties(jmsMsg);
+      assertException(e, (Exception) ((ObjectMessage) jmsMsg).getObject());
+    }
+    finally {
+      stop(trans);
+    }
+  }
+
+  /**
+   * @see com.adaptris.core.jms3.MessageTypeTranslatorCase#createMessage(jakarta.jms.Session)
+   */
+  @Override
+  protected Message createMessage(Session session) throws Exception {
+    return session.createObjectMessage();
+  }
+
+  /**
+   * @see com.adaptris.core.jms3.MessageTypeTranslatorCase#createTranslator()
+   */
+  @Override
+  protected MessageTypeTranslatorImp createTranslator() throws Exception {
+    return new ObjectMessageTranslator();
+  }
+
+  protected static Exception readException(AdaptrisMessage msg) throws IOException, ClassNotFoundException {
+    InputStream in = msg.getInputStream();
+    ObjectInputStream objIn = new ObjectInputStream(in);
+    Object o = objIn.readObject();
+    objIn.close();
+    in.close();
+    return (Exception) o;
+  }
+
+  protected static void write(Exception e, AdaptrisMessage msg) throws IOException {
+    e.fillInStackTrace();
+    OutputStream out = msg.getOutputStream();
+    ObjectOutputStream objOut = new ObjectOutputStream(out);
+    objOut.writeObject(e);
+    objOut.close();
+    out.close();
+  }
+
+  protected static void assertException(Exception e1, Exception e2) {
+    assertEquals(e1.getMessage(), e2.getMessage());
+    StackTraceElement[] s1 = e1.getStackTrace();
+    StackTraceElement[] s2 = e2.getStackTrace();
+    for (int i = 0; i < s1.length; i++) {
+      assertEquals(s1[i].getFileName(), s2[i].getFileName());
+      assertEquals(s1[i].getClassName(), s2[i].getClassName());
+      assertEquals(s1[i].getLineNumber(), s2[i].getLineNumber());
+      assertEquals(s1[i].getMethodName(), s2[i].getMethodName());
+    }
+  }
+}

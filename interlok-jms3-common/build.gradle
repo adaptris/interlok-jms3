@@ -1,0 +1,88 @@
+ext {
+  componentName = 'Interlok Jakarta JMS'
+  componentDesc = "Common components for accessing JMS 3 systems."
+  delombokTargetDir = new File("${project.projectDir}/src/main/generated")
+}
+
+dependencies {
+
+  implementation ("jakarta.jms:jakarta.jms-api:3.1.0")
+  implementation ("org.apache.activemq:artemis-jakarta-client:2.28.0")
+  
+  testImplementation ("org.apache.activemq:artemis-server:2.28.0")
+  testImplementation ("org.apache.geronimo.specs:geronimo-jms_1.1_spec:1.1.1")
+  testImplementation ("org.awaitility:awaitility:4.2.0")
+}
+
+task javadocJar(type: Jar, dependsOn: javadoc) {
+    classifier = 'javadoc'
+    from javadoc.destinationDir
+}
+
+task examplesJar(type: Jar, dependsOn: test) {
+    classifier = 'examples'
+    from new File(buildDir, '/examples')
+}
+
+task sourcesJar(type: Jar, dependsOn: classes) {
+    classifier = 'sources'
+    from sourceSets.main.extensions.delombokTask
+}
+
+jar {
+  manifest {
+    attributes("Built-By": System.getProperty('user.name'),
+              "Build-Jdk": System.getProperty('java.version'),
+              "Implementation-Title": componentName,
+              "Implementation-Version": project.version,
+              "Implementation-Vendor-Id": project.group,
+              "Implementation-Vendor": organizationName)
+  }
+}
+artifacts {
+    archives javadocJar
+    archives examplesJar
+    archives sourcesJar
+}
+
+publishing {
+  publications {
+      mavenJava(MavenPublication) {
+          from components.java
+
+          artifact javadocJar { classifier "javadoc" }
+          artifact examplesJar { classifier "examples" }
+          artifact sourcesJar { classifier "sources" }
+          pom.withXml {
+            asNode().appendNode("name", componentName)
+            asNode().appendNode("description", componentDesc)
+			asNode().appendNode("url", "https://interlok.adaptris.net/interlok-docs/#/")
+            def properties = asNode().appendNode("properties")
+            properties.appendNode("target", "5.0+")
+            properties.appendNode("tags", "jms3")
+            properties.appendNode("license", "false")
+            properties.appendNode("readme", "https://github.com/adaptris/interlok-jms3/raw/develop/README.md")
+            properties.appendNode("repository", "https://github.com/adaptris/interlok-jms3")
+          }
+      }
+  }
+  repositories {
+    maven {
+      credentials {
+        username repoUsername
+        password repoPassword
+      }
+      url mavenPublishUrl
+    }
+  }
+}
+
+delombok {
+  target = delombokTargetDir
+}
+
+task deleteGeneratedFiles(type: Delete) {
+  delete delombokTargetDir
+}
+
+clean.dependsOn deleteGeneratedFiles
