@@ -1,0 +1,2 @@
+junit.JmsConsumerExamples.baseDir=@BUILD_DIR@/examples/consumers
+junit.JmsProducerExamples.baseDir=@BUILD_DIR@/examples/producers
