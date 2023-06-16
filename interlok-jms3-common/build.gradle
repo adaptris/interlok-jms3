@@ -5,7 +5,6 @@ ext {
 }
 
 dependencies {
-
   implementation ("jakarta.jms:jakarta.jms-api:3.1.0")
   implementation ("org.apache.activemq:artemis-jakarta-client:2.28.0")
   implementation ("org.apache.geronimo.specs:geronimo-jms_2.0_spec:1.0-alpha-2")
@@ -85,3 +84,4 @@ task deleteGeneratedFiles(type: Delete) {
 }
 
 clean.dependsOn deleteGeneratedFiles
+processTestResources.dependsOn copyUnitTestProperties
