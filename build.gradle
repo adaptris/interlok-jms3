@@ -77,7 +77,6 @@ def propertyTemplate(dir, filename) {
   return filename
 }
 
-
 task clean(type: Delete) {
   delete project.buildDir
 }
@@ -228,12 +227,11 @@ subprojects {
   }
 
   jacocoTestReport {
-      reports {
-          xml.required= true
-          html.required= true
-      }
+    reports {
+      xml.required= true
+      html.required= true
+    }
   }
-
 
   sourceSets {
     main {
@@ -271,7 +269,6 @@ subprojects {
     include "element-list"
     into offlineJavadocPackageDir
   }
-
 
   ext.testResourcesDir = { ->
     return "${project.projectDir}/src/test/resources".replaceAll("\\\\", "/")
@@ -354,8 +351,6 @@ subprojects {
     version = "1.18.22"
   }
 
-
   check.dependsOn jacocoTestReport
   javadoc.dependsOn offlinePackageList, umlJavadoc
-
 }
