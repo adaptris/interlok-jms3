@@ -1,0 +1,590 @@
+/*
+ * Copyright 2015 Adaptris Ltd.
+ *
+ * Licensed under the Apache License, Version 2.0 (the "License");
+ * you may not use this file except in compliance with the License.
+ * You may obtain a copy of the License at
+ *
+ *     http://www.apache.org/licenses/LICENSE-2.0
+ *
+ * Unless required by applicable law or agreed to in writing, software
+ * distributed under the License is distributed on an "AS IS" BASIS,
+ * WITHOUT WARRANTIES OR CONDITIONS OF ANY KIND, either express or implied.
+ * See the License for the specific language governing permissions and
+ * limitations under the License.
+*/
+
+package com.adaptris.core.jms3.activemq;
+
+import static com.adaptris.core.jms3.activemq.EmbeddedArtemis.createSafeUniqueId;
+import static com.adaptris.interlok.junit.scaffolding.BaseCase.start;
+import static com.adaptris.interlok.junit.scaffolding.BaseCase.stop;
+import static com.adaptris.interlok.junit.scaffolding.BaseCase.waitForMessages;
+import static com.adaptris.interlok.junit.scaffolding.jms.JmsConfig.DEFAULT_PAYLOAD;
+import static org.junit.jupiter.api.Assertions.assertEquals;
+
+import java.util.ArrayList;
+import java.util.Arrays;
+import java.util.List;
+import java.util.Random;
+import java.util.Timer;
+import java.util.TimerTask;
+import java.util.concurrent.TimeUnit;
+
+import org.junit.jupiter.api.AfterAll;
+import org.junit.jupiter.api.BeforeAll;
+import org.junit.jupiter.api.Test;
+
+import com.adaptris.core.AdaptrisMessage;
+import com.adaptris.core.AdaptrisMessageFactory;
+import com.adaptris.core.Channel;
+import com.adaptris.core.CoreException;
+import com.adaptris.core.DefaultMessageFactory;
+import com.adaptris.core.FixedIntervalPoller;
+import com.adaptris.core.ProduceException;
+import com.adaptris.core.Service;
+import com.adaptris.core.ServiceException;
+import com.adaptris.core.ServiceImp;
+import com.adaptris.core.ServiceList;
+import com.adaptris.core.StandaloneProducer;
+import com.adaptris.core.StandardProcessingExceptionHandler;
+import com.adaptris.core.Workflow;
+import com.adaptris.core.jms3.JmsConnection;
+import com.adaptris.core.jms3.JmsConsumerImpl;
+import com.adaptris.core.jms3.JmsPollingConsumerImpl;
+import com.adaptris.core.jms3.JmsTransactedWorkflow;
+import com.adaptris.core.jms3.PasConsumer;
+import com.adaptris.core.jms3.PasProducer;
+import com.adaptris.core.jms3.PtpConsumer;
+import com.adaptris.core.jms3.PtpPollingConsumer;
+import com.adaptris.core.jms3.PtpProducer;
+import com.adaptris.core.jms3.TextMessageTranslator;
+import com.adaptris.core.services.exception.ConfiguredException;
+import com.adaptris.core.services.exception.ThrowExceptionService;
+import com.adaptris.core.stubs.MockChannel;
+import com.adaptris.core.stubs.MockMessageProducer;
+import com.adaptris.core.stubs.MockSkipProducerService;
+import com.adaptris.core.stubs.MockWorkflowInterceptor;
+import com.adaptris.util.TimeInterval;
+
+/**
+ * Tests for JmsTransactedWorkflow that don't rely on Sonic.
+ */
+public class ActiveMqJmsTransactedWorkflowTest {
+
+  private static EmbeddedArtemis activeMqBroker;
+
+  @BeforeAll
+  public static void setUpAll() throws Exception {
+    activeMqBroker = new EmbeddedArtemis();
+    activeMqBroker.start();
+  }
+  
+  @AfterAll
+  public static void tearDownAll() throws Exception {
+    if(activeMqBroker != null)
+      activeMqBroker.destroy();
+  }
+
+  @Test
+  public void testHandleChannelUnavailableWithException_Bug2343() throws Exception {
+    int msgCount = 10;
+    String destination = createSafeUniqueId(new Object());
+    final Channel channel = createStartableChannel(activeMqBroker, true, "testHandleChannelUnavailableWithException_Bug2343",
+        destination);
+    JmsTransactedWorkflow workflow = (JmsTransactedWorkflow) channel.getWorkflowList().get(0);
+    workflow.setChannelUnavailableWaitInterval(new TimeInterval(1L, TimeUnit.SECONDS));
+    workflow.getServiceCollection().addService(new ThrowExceptionService(new ConfiguredException("Fail")));
+    try {
+      channel.requestStart();
+      channel.toggleAvailability(false);
+      Timer t = new Timer();
+      t.schedule(new TimerTask() {
+        @Override
+        public void run() {
+          channel.toggleAvailability(true);
+        }
+
+      }, 666);
+      StandaloneProducer sender = new StandaloneProducer(activeMqBroker.getJmsConnection(),
+          new PtpProducer().withQueue(destination));
+      send(sender, msgCount);
+    }
+    finally {
+      channel.requestClose();
+    }
+  }
+
+  @Test
+  public void testHandleChannelUnavailable_Bug2343() throws Exception {
+    int msgCount = 10;
+    String destination = createSafeUniqueId(new Object());
+    final Channel channel = createStartableChannel(activeMqBroker, true, "testHandleChannelUnavailable_Bug2343", destination);
+    JmsTransactedWorkflow workflow = (JmsTransactedWorkflow) channel.getWorkflowList().get(0);
+    workflow.setChannelUnavailableWaitInterval(new TimeInterval(1L, TimeUnit.SECONDS));
+    try {
+      channel.requestStart();
+      channel.toggleAvailability(false);
+      Timer t = new Timer();
+      t.schedule(new TimerTask() {
+        @Override
+        public void run() {
+          channel.toggleAvailability(true);
+        }
+
+      }, 666);
+      StandaloneProducer sender = new StandaloneProducer(activeMqBroker.getJmsConnection(),
+          new PtpProducer().withQueue((destination)));
+      send(sender, msgCount);
+      waitForMessages((MockMessageProducer) workflow.getProducer(), msgCount);
+      assertEquals(msgCount, ((MockMessageProducer) workflow.getProducer()).getMessages().size());
+    }
+    finally {
+      channel.requestClose();
+    }
+    assertEquals(0, activeMqBroker.messagesOnQueue(destination));
+  }
+
+  @Test
+  public void testServiceException() throws Exception {
+    int msgCount = 10;
+    String destination = createSafeUniqueId(new Object());
+
+    Channel channel = createStartableChannel(activeMqBroker, true, "testServiceException", destination);
+    JmsTransactedWorkflow workflow = (JmsTransactedWorkflow) channel.getWorkflowList().get(0);
+    workflow.getServiceCollection().addService(new ThrowExceptionService(new ConfiguredException("Fail")));
+    try {
+      channel.requestStart();
+      StandaloneProducer sender = new StandaloneProducer(activeMqBroker.getJmsConnection(), new PtpProducer().withQueue(
+              (destination)));
+      send(sender, msgCount);
+
+    }
+    finally {
+      channel.requestClose();
+    }
+  }
+
+  @Test
+  public void testProduceException() throws Exception {
+
+    int msgCount = 10;
+    String destination = createSafeUniqueId(new Object());
+
+    Channel channel = createStartableChannel(activeMqBroker, true, "testProduceException", destination);
+    JmsTransactedWorkflow workflow = (JmsTransactedWorkflow) channel.getWorkflowList().get(0);
+    workflow.setProducer(new MockMessageProducer() {
+      @Override
+      protected void doProduce(AdaptrisMessage msg, String endpoint) throws ProduceException {
+        throw new ProduceException();
+      }
+    });
+    try {
+      channel.requestStart();
+      StandaloneProducer sender = new StandaloneProducer(activeMqBroker.getJmsConnection(),
+          new PtpProducer().withQueue((destination)));
+      send(sender, msgCount);
+    }
+    finally {
+      channel.requestClose();
+    }
+  }
+
+  @Test
+  public void testRuntimeException() throws Exception {
+
+    int msgCount = 10;
+    String destination = createSafeUniqueId(new Object());
+
+    Channel channel = createStartableChannel(activeMqBroker, true, "testRuntimeException", destination);
+    JmsTransactedWorkflow workflow = (JmsTransactedWorkflow) channel.getWorkflowList().get(0);
+    workflow.setProducer(new MockMessageProducer() {
+      @Override
+      protected void doProduce(AdaptrisMessage msg, String endpoint) throws ProduceException {
+        throw new RuntimeException();
+      }
+
+    });
+    try {
+      channel.requestStart();
+      StandaloneProducer sender = new StandaloneProducer(activeMqBroker.getJmsConnection(),
+          new PtpProducer().withQueue((destination)));
+      send(sender, msgCount);
+    }
+    finally {
+      channel.requestClose();
+    }
+  }
+
+  // In Non-Strict Mode, if you have configured an error handler, then
+  // the transaction is successful.
+  @Test
+  public void testServiceExceptionNonStrictWithErrorHandler() throws Exception {
+
+    int msgCount = 10;
+    String destination = createSafeUniqueId(new Object());
+    MockMessageProducer meh = new MockMessageProducer();
+    Channel channel = createStartableChannel(activeMqBroker, true, "testServiceExceptionNonStrictWithErrorHandler", destination);
+    JmsTransactedWorkflow workflow = (JmsTransactedWorkflow) channel.getWorkflowList().get(0);
+    workflow.setStrict(Boolean.FALSE);
+    workflow.getServiceCollection().addService(new ThrowExceptionService(new ConfiguredException("Fail")));
+    channel.setMessageErrorHandler(new StandardProcessingExceptionHandler(
+    		new ServiceList(new ArrayList<Service>(Arrays.asList(new Service[]
+  	    	      {
+  	    	        new StandaloneProducer(meh)
+  	    	      })))));
+    channel.prepare();
+    try {
+      channel.requestStart();
+      StandaloneProducer sender = new StandaloneProducer(activeMqBroker.getJmsConnection(),
+          new PtpProducer().withQueue((destination)));
+      send(sender, msgCount);
+      waitForMessages(meh, msgCount);
+      assertEquals(0, ((MockMessageProducer) workflow.getProducer()).getMessages().size());
+    }
+    finally {
+      channel.requestClose();
+    }
+    assertEquals(0, activeMqBroker.messagesOnQueue(destination));
+  }
+
+  // In Strict Mode, Then even if you have configured an error handler, then
+  // the transaction is unsucessful if we have an exception, leading to msgs on
+  // the queue.
+  @Test
+  public void testServiceExceptionStrictWithErrorHandler() throws Exception {
+
+    int msgCount = 10;
+    String destination = createSafeUniqueId(new Object());
+    MockMessageProducer meh = new MockMessageProducer();
+    Channel channel = createStartableChannel(activeMqBroker, true, "testServiceExceptionStrictWithErrorHandler", destination);
+    JmsTransactedWorkflow workflow = (JmsTransactedWorkflow) channel.getWorkflowList().get(0);
+    workflow.setStrict(Boolean.TRUE);
+    workflow.getServiceCollection().addService(new ThrowExceptionService(new ConfiguredException("Fail")));
+    channel.setMessageErrorHandler(new StandardProcessingExceptionHandler(
+    		new ServiceList(new ArrayList<Service>(Arrays.asList(new Service[]
+  	    	      {
+  	    	        new StandaloneProducer(meh)
+  	    	      })))));
+    try {
+      channel.requestStart();
+      StandaloneProducer sender = new StandaloneProducer(activeMqBroker.getJmsConnection(),
+          new PtpProducer().withQueue((destination)));
+      send(sender, msgCount);
+    }
+    finally {
+      channel.requestClose();
+    }
+    assertEquals(msgCount, activeMqBroker.messagesOnQueue(destination));
+  }
+
+  @Test
+  public void testMessagesRolledBackUsingQueue() throws Exception {
+
+    int msgCount = 10;
+    String destination = createSafeUniqueId(new Object());
+
+    Channel channel = createStartableChannel(activeMqBroker, true, "testMessagesRolledBackUsingQueue", destination);
+    JmsTransactedWorkflow workflow = (JmsTransactedWorkflow) channel.getWorkflowList().get(0);
+    workflow.getServiceCollection().addService(new ThrowExceptionService(new ConfiguredException("Fail")));
+    try {
+      channel.requestStart();
+      StandaloneProducer sender = new StandaloneProducer(activeMqBroker.getJmsConnection(),
+          new PtpProducer().withQueue((destination)));
+      send(sender, msgCount);
+
+    }
+    finally {
+      channel.requestClose();
+    }
+  }
+
+  @Test
+  public void testMessagesRolledBackUsingTopic() throws Exception {
+
+    int msgCount = 10;
+    String destination = createSafeUniqueId(new Object());
+
+    Channel channel = createStartableChannel(activeMqBroker, false, "testMessagesRolledBackUsingTopic", destination);
+    JmsTransactedWorkflow workflow = (JmsTransactedWorkflow) channel.getWorkflowList().get(0);
+    workflow.getServiceCollection().addService(new ThrowExceptionService(new ConfiguredException("Fail")));
+    try {
+      channel.requestStart();
+      StandaloneProducer sender = new StandaloneProducer(activeMqBroker.getJmsConnection(),
+          new PasProducer().withTopic(destination));
+      send(sender, msgCount);
+      assertEquals(0, ((MockMessageProducer) workflow.getProducer()).getMessages().size());
+    }
+    finally {
+      channel.requestClose();
+    }
+    // can't actually check the count of messsages on a topic, that's a trifle
+    // silly; you might check per-subscription...
+    // assertEquals(msgCount, activeMqBroker.messageCount(get(TOPIC)));
+  }
+
+  @Test
+  public void testMessagesCommittedUsingQueue() throws Exception {
+
+    int msgCount = 10;
+    String destination = createSafeUniqueId(new Object());
+
+    Channel channel = createStartableChannel(activeMqBroker, true, "testMessagesCommittedUsingQueue", destination);
+    JmsTransactedWorkflow workflow = (JmsTransactedWorkflow) channel.getWorkflowList().get(0);
+    try {
+      channel.requestStart();
+      StandaloneProducer sender = new StandaloneProducer(activeMqBroker.getJmsConnection(),
+          new PtpProducer().withQueue(destination));
+      send(sender, msgCount);
+      waitForMessages((MockMessageProducer) workflow.getProducer(), msgCount);
+      assertEquals(msgCount, ((MockMessageProducer) workflow.getProducer()).getMessages().size());
+    }
+    finally {
+      channel.requestClose();
+    }
+    assertEquals(0, activeMqBroker.messagesOnQueue(destination));
+  }
+
+  @Test
+  public void testWorkflow_SkipProducer() throws Exception {
+    int msgCount = 10;
+    String destination = createSafeUniqueId(new Object());
+
+    Channel channel = createStartableChannel(activeMqBroker, true, "testWorkflow_SkipProducer", destination);
+    JmsTransactedWorkflow workflow = (JmsTransactedWorkflow) channel.getWorkflowList().get(0);
+    MockMessageProducer serviceProducer = new MockMessageProducer();
+    workflow.getServiceCollection().addAll(Arrays.asList(new Service[] {
+        new StandaloneProducer(serviceProducer), new MockSkipProducerService()
+    }));
+    MockMessageProducer workflowProducer = (MockMessageProducer) workflow.getProducer();
+
+    try {
+      channel.requestStart();
+      StandaloneProducer sender = new StandaloneProducer(activeMqBroker.getJmsConnection(),
+          new PtpProducer().withQueue((destination)));
+      send(sender, msgCount);
+      waitForMessages(serviceProducer, msgCount);
+      assertEquals(msgCount, serviceProducer.messageCount());
+      assertEquals(0, workflowProducer.messageCount());
+    }
+    finally {
+      channel.requestClose();
+    }
+    assertEquals(0, activeMqBroker.messagesOnQueue(destination));
+  }
+
+  @Test
+  public void testMessagesCommittedUsingTopic() throws Exception {
+    int msgCount = 10;
+    String destination = createSafeUniqueId(new Object());
+    Channel channel = createStartableChannel(activeMqBroker, false, "testMessagesCommittedUsingTopic", destination);
+    JmsTransactedWorkflow workflow = (JmsTransactedWorkflow) channel.getWorkflowList().get(0);
+    try {
+      channel.requestStart();
+      StandaloneProducer sender = new StandaloneProducer(activeMqBroker.getJmsConnection(),
+          new PasProducer().withTopic(destination));
+      send(sender, msgCount);
+      waitForMessages((MockMessageProducer) workflow.getProducer(), msgCount);
+      assertEquals(msgCount, ((MockMessageProducer) workflow.getProducer()).getMessages().size());
+    }
+    finally {
+      channel.requestClose();
+    }
+  }
+
+  @Test
+  public void testWorkflowWithInterceptor() throws Exception {
+    int msgCount = 10;
+    String destination = createSafeUniqueId(new Object());
+    Channel channel = createStartableChannel(activeMqBroker, false, "testMessagesCommittedUsingTopic", destination);
+    JmsTransactedWorkflow workflow = (JmsTransactedWorkflow) channel.getWorkflowList().get(0);
+    MockWorkflowInterceptor interceptor = new MockWorkflowInterceptor();
+    workflow.addInterceptor(interceptor);
+    try {
+      channel.requestStart();
+      StandaloneProducer sender = new StandaloneProducer(activeMqBroker.getJmsConnection(),
+          new PasProducer().withTopic(destination));
+      send(sender, msgCount);
+      waitForMessages((MockMessageProducer) workflow.getProducer(), msgCount);
+      assertEquals(msgCount, ((MockMessageProducer) workflow.getProducer()).getMessages().size());
+      assertEquals(msgCount, interceptor.messageCount());
+    }
+    finally {
+      channel.requestClose();
+    }
+  }
+
+  @Test
+  public void testMessagesOrderedUsingQueue() throws Exception {
+    int msgCount = 10;
+    String destination = createSafeUniqueId(new Object());
+
+    Channel channel = createStartableChannel(activeMqBroker, true, "testMessagesOrderedUsingQueue", destination);
+    JmsTransactedWorkflow workflow = (JmsTransactedWorkflow) channel.getWorkflowList().get(0);
+    workflow.getServiceCollection().addService(new RandomlyFail());
+    try {
+      channel.requestStart();
+      StandaloneProducer sender = new StandaloneProducer(activeMqBroker.getJmsConnection(),
+          new PtpProducer().withQueue((destination)));
+      start(sender);
+      for (int i = 0; i < msgCount; i++) {
+        sender.doService(AdaptrisMessageFactory.getDefaultInstance().newMessage("" + i));
+      }
+      stop(sender);
+      waitForMessages((MockMessageProducer) workflow.getProducer(), msgCount);
+      List<AdaptrisMessage> receivedList = ((MockMessageProducer) workflow.getProducer()).getMessages();
+      assertEquals(msgCount, receivedList.size());
+
+      for (int i = 0; i < msgCount; i++) {
+        assertEquals(String.valueOf(i), receivedList.get(i).getContent());
+      }
+    }
+    finally {
+      channel.requestClose();
+    }
+    assertEquals(0, activeMqBroker.messagesOnQueue(destination));
+  }
+
+  @Test
+  public void testMessagesOrderedUsingTopic() throws Exception {
+    int msgCount = 10;
+    String destination = createSafeUniqueId(new Object());
+    Channel channel = createStartableChannel(activeMqBroker, false, "testMessagesOrderedUsingTopic", destination);
+    JmsTransactedWorkflow workflow = (JmsTransactedWorkflow) channel.getWorkflowList().get(0);
+    workflow.getServiceCollection().addService(new RandomlyFail());
+    try {
+      channel.requestStart();
+      StandaloneProducer sender = new StandaloneProducer(activeMqBroker.getJmsConnection(),
+          new PasProducer().withTopic(destination));
+      start(sender);
+      for (int i = 0; i < msgCount; i++) {
+        sender.doService(AdaptrisMessageFactory.getDefaultInstance().newMessage("" + i));
+      }
+      stop(sender);
+      waitForMessages((MockMessageProducer) workflow.getProducer(), msgCount);
+      List<AdaptrisMessage> receivedList = ((MockMessageProducer) workflow.getProducer()).getMessages();
+      assertEquals(msgCount, receivedList.size());
+
+      for (int i = 0; i < msgCount; i++) {
+        assertEquals(String.valueOf(i), receivedList.get(i).getContent());
+      }
+    }
+    finally {
+      channel.requestClose();
+    }
+  }
+
+  @Test
+  public void testMessagesOrderedUsingQueuePollingConsumer() throws Exception {
+    int msgCount = 10;
+    String destination = createSafeUniqueId(new Object());
+
+    JmsTransactedWorkflow workflow = createPollingWorkflow(activeMqBroker, "testMessagesOrderedUsingQueuePollingConsumer",
+        destination);
+    Channel channel = createStartableChannel(workflow);
+    workflow.getServiceCollection().addService(new RandomlyFail());
+    try {
+      channel.requestStart();
+      StandaloneProducer sender = new StandaloneProducer(activeMqBroker.getJmsConnection(),
+          new PtpProducer().withQueue((destination)));
+      start(sender);
+      for (int i = 0; i < msgCount; i++) {
+        sender.doService(AdaptrisMessageFactory.getDefaultInstance().newMessage("" + i));
+      }
+      stop(sender);
+      waitForMessages((MockMessageProducer) workflow.getProducer(), msgCount);
+      List<AdaptrisMessage> receivedList = ((MockMessageProducer) workflow.getProducer()).getMessages();
+      assertEquals(msgCount, receivedList.size());
+
+      for (int i = 0; i < msgCount; i++) {
+        assertEquals(String.valueOf(i), receivedList.get(i).getContent());
+      }
+    }
+    finally {
+      channel.requestClose();
+    }
+    assertEquals(0, activeMqBroker.messagesOnQueue(destination));
+  }
+
+  private Channel createStartableChannel(Workflow w) throws Exception {
+    Channel channel = new MockChannel();
+    channel.getWorkflowList().add(w);
+    channel.prepare();
+    return channel;
+  }
+
+  private Channel createStartableChannel(EmbeddedArtemis mq, boolean isPtp, String threadName, String dest) throws Exception {
+    Channel channel = createPlainChannel(mq, isPtp);
+    channel.getWorkflowList().add(createWorkflow(isPtp, threadName, dest));
+    // channel.prepare();
+    return channel;
+  }
+
+  private Channel createPlainChannel(EmbeddedArtemis mq, boolean isPtp) throws Exception {
+    Channel result = new MockChannel();
+    result.setUniqueId(mq.getName() + "_channel");
+    result.setConsumeConnection(isPtp ? mq.getJmsConnection() : mq.getJmsConnection());
+    return result;
+  }
+
+  private JmsTransactedWorkflow createWorkflow(boolean isPtp, String threadName, String target) throws CoreException {
+    JmsTransactedWorkflow workflow = new JmsTransactedWorkflow();
+    workflow.setWaitPeriodAfterRollback(new TimeInterval(10L, TimeUnit.MILLISECONDS.name()));
+
+    workflow.setProducer(new MockMessageProducer());
+
+    JmsConsumerImpl jmsCons =
+        isPtp ? new PtpConsumer().withQueue(target) : new PasConsumer().withTopic(target);
+    jmsCons.setMessageTranslator(new TextMessageTranslator().withMoveJmsHeaders(true));
+    workflow.setConsumer(jmsCons);
+    return workflow;
+  }
+
+  private JmsTransactedWorkflow createPollingWorkflow(EmbeddedArtemis mq, String threadName, String target) throws CoreException {
+    JmsTransactedWorkflow workflow = new JmsTransactedWorkflow();
+    workflow.setProducer(new MockMessageProducer());
+    workflow.setWaitPeriodAfterRollback(new TimeInterval(10L, TimeUnit.MILLISECONDS.name()));
+
+    JmsPollingConsumerImpl jmsCons = new PtpPollingConsumer().withQueue(target);
+    jmsCons.setReacquireLockBetweenMessages(true);
+    jmsCons.setAdditionalDebug(true);
+    jmsCons.setPoller(new FixedIntervalPoller(new TimeInterval(2L, TimeUnit.SECONDS)));
+    JmsConnection jmsConn = mq.getJmsConnection();
+    jmsCons.setVendorImplementation(jmsConn.getVendorImplementation());
+    jmsCons.setMessageTranslator(new TextMessageTranslator().withMoveJmsHeaders(true));
+    jmsCons.setClientId(jmsConn.getClientId());
+    workflow.setConsumer(jmsCons);
+    return workflow;
+  }
+
+  private void send(StandaloneProducer sender, int count) throws Exception {
+    start(sender);
+    for (int i = 0; i < count; i++) {
+      sender.doService(new DefaultMessageFactory().newMessage(DEFAULT_PAYLOAD));
+    }
+    stop(sender);
+  }
+
+  private class RandomlyFail extends ServiceImp {
+    @Override
+    public void doService(AdaptrisMessage msg) throws ServiceException {
+      int i = new Random().nextInt(20) + 1;
+      if ((i & i - 1) == 0) {
+        throw new ServiceException(this.getClass().getSimpleName() + " failure, " + i + " is a power of 2");
+      }
+    }
+
+    @Override
+    protected void initService() throws CoreException {
+
+    }
+
+    @Override
+    protected void closeService() {
+
+    }
+    @Override
+    public void prepare() throws CoreException {}
+
+  }
+}
