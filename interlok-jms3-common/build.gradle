@@ -1,5 +1,5 @@
 ext {
-  componentName = 'Interlok Jakarta JMS'
+  componentName = 'Interlok Messaging/Jakarta JMS'
   componentDesc = "Common components for accessing JMS 3 systems."
   delombokTargetDir = new File("${project.projectDir}/src/main/generated")
 }
