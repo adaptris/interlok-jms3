@@ -9,7 +9,7 @@ dependencies {
   implementation ("org.apache.activemq:artemis-jakarta-client:2.31.0")
   implementation ("org.apache.geronimo.specs:geronimo-jms_2.0_spec:1.0-alpha-2")
   
-  testImplementation ("org.apache.activemq:artemis-server:2.30.0")
+  testImplementation ("org.apache.activemq:artemis-server:2.31.0")
 }
 
 task javadocJar(type: Jar, dependsOn: javadoc) {
