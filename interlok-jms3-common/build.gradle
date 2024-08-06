@@ -7,7 +7,7 @@ ext {
 dependencies {
   implementation (platform("io.netty:netty-bom:4.1.112.Final"))
   implementation ("jakarta.jms:jakarta.jms-api:3.1.0")
-  implementation ("org.apache.activemq:artemis-jakarta-client:2.35.0")
+  implementation ("org.apache.activemq:artemis-jakarta-client:2.36.0")
   implementation ("org.apache.geronimo.specs:geronimo-jms_2.0_spec:1.0-alpha-2")
   
   testImplementation ("org.apache.activemq:artemis-server:2.36.0")
