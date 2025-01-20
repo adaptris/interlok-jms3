@@ -5,7 +5,7 @@ ext {
 }
 
 dependencies {
-  implementation (platform("io.netty:netty-bom:4.1.116.Final"))
+  implementation (platform("io.netty:netty-bom:4.1.117.Final"))
   implementation ("jakarta.jms:jakarta.jms-api:3.1.0")
   implementation ("org.apache.activemq:artemis-jakarta-client:2.39.0")
   implementation ("org.apache.geronimo.specs:geronimo-jms_2.0_spec:1.0-alpha-2")
