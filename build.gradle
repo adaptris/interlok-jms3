@@ -2,11 +2,11 @@ import org.apache.tools.ant.taskdefs.condition.Os
 import org.apache.tools.ant.filters.*
 
 plugins {
-  id "com.github.spotbugs" version "6.0.21" apply false
-  id "org.sonarqube" version "4.4.1.3373"
-  id "org.owasp.dependencycheck" version "10.0.3" apply false
-  id "io.freefair.lombok" version "8.10" apply false
-  id "org.gradle.test-retry" version "1.5.10" apply false
+  id "com.github.spotbugs" version "6.0.27" apply false
+  id "org.sonarqube" version "6.0.1.5171"
+  id "org.owasp.dependencycheck" version "11.1.1" apply false
+  id "io.freefair.lombok" version "8.11" apply false
+  id "org.gradle.test-retry" version "1.6.0" apply false
 }
 
 ext {
@@ -26,7 +26,7 @@ ext {
   organizationUrl = "http://interlok.adaptris.net"
   slf4jVersion = '2.0.16'
   mockitoVersion = '5.2.0'
-  junitJupiterVersion = '5.11.0'
+  junitJupiterVersion = '5.11.4'
 }
 
 ext.buildDetails = [
@@ -183,7 +183,7 @@ subprojects {
     testImplementation ("org.mockito:mockito-core:$mockitoVersion")
     testImplementation ("org.mockito:mockito-inline:$mockitoVersion")
     javadoc("com.adaptris:interlok-core-apt:$interlokCoreVersion") { changing= true}
-    umlDoclet("nl.talsmasoftware:umldoclet:2.2.0")
+    umlDoclet("nl.talsmasoftware:umldoclet:2.2.1")
 
     offlineJavadocPackages ("com.adaptris:interlok-core:$interlokCoreVersion:javadoc@jar") { changing= true}
     offlineJavadocPackages ("com.adaptris:interlok-common:$interlokCoreVersion:javadoc@jar") { changing= true}
