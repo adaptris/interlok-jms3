@@ -126,6 +126,7 @@ subprojects {
   lombok.disableConfig = true
 
   repositories {
+    mavenLocal()
     mavenCentral() {
       content {
         excludeGroupByRegex "com\\.adaptris.*"
@@ -170,6 +171,7 @@ subprojects {
 
   // In this section you declare the dependencies for your production and test code
   dependencies {
+    api ("jakarta.validation:jakarta.validation-api:3.0.0")
     api ("com.adaptris:interlok-core:$interlokCoreVersion") { changing= true}
     api ("com.adaptris:interlok-core-apt:$interlokCoreVersion") { changing= true}
     implementation ("org.slf4j:slf4j-api:$slf4jVersion")

@@ -4,9 +4,9 @@ import static com.adaptris.core.jms3.NullCorrelationIdSource.defaultIfNull;
 
 import java.util.concurrent.TimeUnit;
 
-import javax.validation.Valid;
-import javax.validation.constraints.NotNull;
-import javax.validation.constraints.Pattern;
+import jakarta.validation.Valid;
+import jakarta.validation.constraints.NotNull;
+import jakarta.validation.constraints.Pattern;
 
 import org.apache.commons.lang3.BooleanUtils;
 
