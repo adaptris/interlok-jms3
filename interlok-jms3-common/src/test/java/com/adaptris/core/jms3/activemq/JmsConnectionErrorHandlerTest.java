@@ -24,6 +24,7 @@ import static org.junit.jupiter.api.Assertions.assertEquals;
 
 import java.util.concurrent.TimeUnit;
 
+import com.adaptris.core.*;
 import org.junit.jupiter.api.AfterAll;
 import org.junit.jupiter.api.BeforeAll;
 import org.junit.jupiter.api.Test;
@@ -31,17 +32,6 @@ import org.junit.jupiter.api.TestInfo;
 import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
 
-import com.adaptris.core.Adapter;
-import com.adaptris.core.AdaptrisMessageFactory;
-import com.adaptris.core.ClosedState;
-import com.adaptris.core.ComponentState;
-import com.adaptris.core.CoreException;
-import com.adaptris.core.InitialisedState;
-import com.adaptris.core.SharedConnection;
-import com.adaptris.core.StandaloneProducer;
-import com.adaptris.core.StandardWorkflow;
-import com.adaptris.core.StartedState;
-import com.adaptris.core.Workflow;
 import com.adaptris.core.jms3.JmsConnection;
 import com.adaptris.core.jms3.JmsConnectionErrorHandler;
 import com.adaptris.core.jms3.PasConsumer;
@@ -83,9 +73,11 @@ public class JmsConnectionErrorHandlerTest {
     try {
       channel.requestStart();
       assertEquals(StartedState.getInstance(), channel.retrieveComponentState());
+      channel.requestClose();
       activeMqBroker.stop();
       Thread.sleep(1000);
       activeMqBroker.start();
+      channel.requestStart();
       waitForChannelToMatchState(StartedState.getInstance(), channel);
 
       assertEquals(StartedState.getInstance(), channel.retrieveComponentState());
@@ -111,9 +103,11 @@ public class JmsConnectionErrorHandlerTest {
     try {
       channel.requestStart();
       assertEquals(StartedState.getInstance(), channel.retrieveComponentState());
+//      channel.requestClose();
       activeMqBroker.stop();
       Thread.sleep(1000);
       activeMqBroker.start();
+//      channel.requestStart();
       waitForChannelToMatchState(StartedState.getInstance(), channel);
 
       assertEquals(StartedState.getInstance(), channel.retrieveComponentState());
@@ -133,9 +127,11 @@ public class JmsConnectionErrorHandlerTest {
     try {
       channel.requestStart();
       assertEquals(StartedState.getInstance(), channel.retrieveComponentState());
+//      channel.requestClose();
       activeMqBroker.stop();
       Thread.sleep(1000);
       activeMqBroker.start();
+//      channel.requestStart();
       // This is a bit artificial, but we shouldn't ever transition from ClosedState.
       Thread.sleep(1000);
       waitForChannelToMatchState(ClosedState.getInstance(), channel);
@@ -158,9 +154,11 @@ public class JmsConnectionErrorHandlerTest {
     try {
       channel.requestStart();
       assertEquals(StartedState.getInstance(), channel.retrieveComponentState());
+//      channel.requestClose();
       activeMqBroker.stop();
       Thread.sleep(1000);
       activeMqBroker.start();
+//      channel.requestStart();
       waitForChannelToMatchState(InitialisedState.getInstance(), channel);
 
       assertEquals(InitialisedState.getInstance(), channel.retrieveComponentState());
@@ -179,9 +177,11 @@ public class JmsConnectionErrorHandlerTest {
     try {
       channel.requestStart();
       assertEquals(StartedState.getInstance(), channel.retrieveComponentState());
+      channel.requestClose();
       activeMqBroker.stop();
       Thread.sleep(1000);
       activeMqBroker.start();
+      channel.requestStart();
       waitForChannelToMatchState(StartedState.getInstance(), channel);
 
       assertEquals(StartedState.getInstance(), channel.retrieveComponentState());
@@ -201,9 +201,11 @@ public class JmsConnectionErrorHandlerTest {
     try {
       channel.requestStart();
       assertEquals(StartedState.getInstance(), channel.retrieveComponentState());
+      channel.requestClose();
       activeMqBroker.stop();
       Thread.sleep(1000);
       activeMqBroker.start();
+      channel.requestStart();
       waitForChannelToMatchState(StartedState.getInstance(), channel);
 
       assertEquals(StartedState.getInstance(), channel.retrieveComponentState());
@@ -225,9 +227,11 @@ public class JmsConnectionErrorHandlerTest {
     try {
       channel.requestStart();
       assertEquals(StartedState.getInstance(), channel.retrieveComponentState());
+      channel.requestClose();
       activeMqBroker.stop();
       Thread.sleep(1000);
       activeMqBroker.start();
+      channel.requestStart();
       waitForChannelToMatchState(StartedState.getInstance(), channel);
 
       assertEquals(StartedState.getInstance(), channel.retrieveComponentState());
@@ -246,9 +250,11 @@ public class JmsConnectionErrorHandlerTest {
     try {
       channel.requestStart();
       assertEquals(StartedState.getInstance(), channel.retrieveComponentState());
+      channel.requestClose();
       activeMqBroker.stop();
       Thread.sleep(1000);
       activeMqBroker.start();
+      channel.requestStart();
       waitForChannelToMatchState(StartedState.getInstance(), channel);
 
       assertEquals(StartedState.getInstance(), channel.retrieveComponentState());
