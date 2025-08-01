@@ -64,9 +64,9 @@ public class ActiveMqPtpPollingConsumerTest {
 
     int msgCount = 5;
     final StandaloneProducer sender = new StandaloneProducer(activeMqBroker.getJmsConnection(),
-        new PtpProducer().withQueue(info.getDisplayName()+"-8"));
+        new PtpProducer().withQueue(info.getDisplayName()+"-1"));
     final StandaloneConsumer receiver =
-        createConsumer(activeMqBroker, "testProduceConsume", info.getDisplayName()+"-8");
+        createConsumer(activeMqBroker, "testProduceConsume", info.getDisplayName()+"-1");
     try {
       MockMessageListener jms = new MockMessageListener();
       receiver.registerAdaptrisMessageListener(jms);

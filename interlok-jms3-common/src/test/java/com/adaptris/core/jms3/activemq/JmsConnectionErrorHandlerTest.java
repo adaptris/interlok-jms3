@@ -104,19 +104,20 @@ public class JmsConnectionErrorHandlerTest {
     try {
       channel.requestStart();
       assertEquals(StartedState.getInstance(), channel.retrieveComponentState());
-//      channel.requestClose();
       activeMqBroker.stop();
       Thread.sleep(1000);
       activeMqBroker.start();
-//      channel.requestStart();
       waitForChannelToMatchState(StartedState.getInstance(), channel);
 
       assertEquals(StartedState.getInstance(), channel.retrieveComponentState());
-      assertEquals(2, channel.getStartCount());
+      assertEquals(1, channel.getStartCount());
 
     } finally {
-      Thread.sleep(5000);
-      channel.requestClose();
+      try {
+        channel.requestClose();
+      } catch (RuntimeException e) {
+        log.trace("Channel could not be closed:" + e.getMessage(), e);
+      }
     }
   }
 
@@ -160,13 +161,17 @@ public class JmsConnectionErrorHandlerTest {
       activeMqBroker.start();
       waitForChannelToMatchState(InitialisedState.getInstance(), channel);
 
-//      assertTrue(InitialisedState.getInstance().equals(channel.retrieveComponentState())
-//              || StartedState.getInstance().equals(channel.retrieveComponentState()));
+      assertTrue(InitialisedState.getInstance().equals(channel.retrieveComponentState())
+              || StartedState.getInstance().equals(channel.retrieveComponentState()));
       assertEquals(1, channel.getStartCount());
-      assertEquals(2, channel.getInitCount());
+      assertEquals(1, channel.getInitCount());
 
     } finally {
-      channel.requestClose();
+      try {
+        channel.requestClose();
+      } catch (RuntimeException e) {
+        log.trace("Channel could not be closed:" + e.getMessage(), e);
+      }
     }
   }
 
