@@ -128,16 +128,6 @@ public class PtpProducer extends DefinedJmsProducer {
   }
 
   @Override
-  public AdaptrisMessage request(AdaptrisMessage msg, long timeout) throws ProduceException {
-    return request(msg, endpoint(msg), timeout);
-  }
-
-  @Override
-  public void produce(AdaptrisMessage msg) throws ProduceException {
-    produce(msg, endpoint(msg));
-  }
-
-  @Override
   public String endpoint(AdaptrisMessage msg) throws ProduceException {
     return msg.resolve(getQueue());
   }

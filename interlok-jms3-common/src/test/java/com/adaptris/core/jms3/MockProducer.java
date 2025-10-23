@@ -21,29 +21,19 @@ public class MockProducer extends DefinedJmsProducer {
     throw new ProduceException();
   }
 
-  @Override
+    @Override
+    public AdaptrisMessage doRequest(AdaptrisMessage msg, String dest, long timeout) throws ProduceException {
+        throw new ProduceException();
+    }
+
+    @Override
   public Destination createTemporaryDestination() throws JMSException {
     throw new JMSException("NO!");
   }
 
   @Override
-  public AdaptrisMessage request(AdaptrisMessage msg) throws ProduceException {
-    throw new ProduceException();
-  }
-
-  @Override
-  public void produce(AdaptrisMessage msg) throws ProduceException {
-    throw new ProduceException();
-  }
-
-  @Override
   public String endpoint(AdaptrisMessage msg) throws ProduceException {
     return null;
-  }
-
-  @Override
-  public AdaptrisMessage request(AdaptrisMessage msg, long timeout) throws ProduceException {
-    throw new ProduceException();
   }
 
   @Override
