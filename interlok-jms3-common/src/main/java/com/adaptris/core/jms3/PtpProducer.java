@@ -133,8 +133,18 @@ public class PtpProducer extends DefinedJmsProducer {
   }
 
   @Override
+  protected AdaptrisMessage doRequest(AdaptrisMessage msg, String dest, long timeout) throws ProduceException {
+    return request(msg, dest, timeout);
+  }
+
+  @Override
   public void produce(AdaptrisMessage msg) throws ProduceException {
     produce(msg, endpoint(msg));
+  }
+
+  @Override
+  protected void doProduce(AdaptrisMessage msg, String dest) throws ProduceException {
+    produce(msg, dest);
   }
 
   @Override

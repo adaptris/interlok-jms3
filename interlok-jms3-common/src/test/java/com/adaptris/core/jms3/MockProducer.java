@@ -32,7 +32,17 @@ public class MockProducer extends DefinedJmsProducer {
   }
 
   @Override
+  protected AdaptrisMessage doRequest(AdaptrisMessage msg, String dest, long timeout) throws ProduceException {
+    throw new ProduceException();
+  }
+
+  @Override
   public void produce(AdaptrisMessage msg) throws ProduceException {
+    throw new ProduceException();
+  }
+
+  @Override
+  protected void doProduce(AdaptrisMessage msg, String dest) throws ProduceException {
     throw new ProduceException();
   }
 
