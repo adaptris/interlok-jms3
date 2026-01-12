@@ -126,26 +126,6 @@ public class PasProducer extends DefinedJmsProducer {
   }
 
   @Override
-  public AdaptrisMessage request(AdaptrisMessage msg, long timeout) throws ProduceException {
-    return request(msg, endpoint(msg), timeout);
-  }
-
-  @Override
-  protected AdaptrisMessage doRequest(AdaptrisMessage msg, String dest, long timeout) throws ProduceException {
-    return request(msg, dest, timeout);
-  }
-
-  @Override
-  public void produce(AdaptrisMessage msg) throws ProduceException {
-    produce(msg, endpoint(msg));
-  }
-
-  @Override
-  protected void doProduce(AdaptrisMessage msg, String dest) throws ProduceException {
-    produce(msg, dest);
-  }
-
-  @Override
   public String endpoint(AdaptrisMessage msg) throws ProduceException {
     return msg.resolve(getTopic());
   }

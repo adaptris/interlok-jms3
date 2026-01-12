@@ -136,6 +136,26 @@ public abstract class DefinedJmsProducer extends JmsProducerImpl {
     return mergeReply(translatedReply, msg);
   }
 
+  @Override
+  public AdaptrisMessage request(AdaptrisMessage msg, long timeout) throws ProduceException {
+    return request(msg, endpoint(msg), timeout);
+  }
+
+  @Override
+  protected AdaptrisMessage doRequest(AdaptrisMessage msg, String dest, long timeout) throws ProduceException {
+    return request(msg, dest, timeout);
+  }
+
+  @Override
+  public void produce(AdaptrisMessage msg) throws ProduceException {
+    produce(msg, endpoint(msg));
+  }
+
+  @Override
+  protected void doProduce(AdaptrisMessage msg, String dest) throws ProduceException {
+    produce(msg, dest);
+  }
+
   protected abstract Destination createDestination(String name) throws JMSException;
 
   protected abstract Destination createTemporaryDestination() throws JMSException;
