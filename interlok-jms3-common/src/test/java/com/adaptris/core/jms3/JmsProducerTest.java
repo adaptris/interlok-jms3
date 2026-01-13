@@ -18,10 +18,7 @@ package com.adaptris.core.jms3;
 
 import static com.adaptris.core.jms3.JmsConfig.DEFAULT_PAYLOAD;
 import static com.adaptris.core.jms3.JmsConfig.MESSAGE_TRANSLATOR_LIST;
-import static org.junit.jupiter.api.Assertions.assertEquals;
-import static org.junit.jupiter.api.Assertions.assertFalse;
-import static org.junit.jupiter.api.Assertions.assertTrue;
-import static org.junit.jupiter.api.Assertions.fail;
+import static org.junit.jupiter.api.Assertions.*;
 import static org.mockito.ArgumentMatchers.any;
 import static org.mockito.Mockito.doThrow;
 import static org.mockito.Mockito.times;
@@ -33,6 +30,7 @@ import java.util.List;
 import java.util.Map;
 import java.util.concurrent.TimeUnit;
 
+import com.adaptris.core.*;
 import org.junit.jupiter.api.AfterAll;
 import org.junit.jupiter.api.AfterEach;
 import org.junit.jupiter.api.Assertions;
@@ -42,13 +40,6 @@ import org.junit.jupiter.api.Test;
 import org.mockito.Mock;
 import org.mockito.MockitoAnnotations;
 
-import com.adaptris.core.AdaptrisMessage;
-import com.adaptris.core.AdaptrisMessageFactory;
-import com.adaptris.core.ServiceException;
-import com.adaptris.core.ServiceList;
-import com.adaptris.core.StandaloneConsumer;
-import com.adaptris.core.StandaloneProducer;
-import com.adaptris.core.StandaloneRequestor;
 import com.adaptris.core.jms3.BasicJmsProducerCase.Loopback;
 import com.adaptris.core.jms3.activemq.BasicActiveMqImplementation;
 import com.adaptris.core.jms3.activemq.EmbeddedArtemis;
@@ -818,6 +809,53 @@ public class JmsProducerTest extends JmsProducerCase {
         stop(serviceList);
       }
     });
+  }
+
+  @Test
+  public void testDoProduceDelegatesToProduce() throws Exception {
+    final String[] capturedDest = new String[1];
+    AdaptrisMessage msg = AdaptrisMessageFactory.getDefaultInstance().newMessage("payload");
+
+    JmsProducer producer = new JmsProducer() {
+      @Override
+      public void produce(AdaptrisMessage m, String dest) throws ProduceException {
+        capturedDest[0] = dest;
+        assertSame(msg, m);
+      }
+    };
+
+    String dest = "jms:queue:TestQueue";
+
+    producer.doProduce(msg, dest);
+
+    assertEquals(dest, capturedDest[0]);
+  }
+
+  @Test
+  public void testDoRequestDelegatesToRequest() throws Exception {
+    AdaptrisMessage msg = AdaptrisMessageFactory.getDefaultInstance().newMessage("request-payload");
+    AdaptrisMessage cannedReply = AdaptrisMessageFactory.getDefaultInstance().newMessage("reply-payload");
+
+    final Object[] captured = new Object[2];
+
+    JmsProducer producer = new JmsProducer() {
+      @Override
+      public AdaptrisMessage request(AdaptrisMessage m, String dest, long timeout) throws ProduceException {
+        captured[0] = dest;
+        captured[1] = timeout;
+        assertSame(msg, m);
+        return cannedReply;
+      }
+    };
+
+    String dest = "jms:queue:RequestQueue";
+    long timeout = 2500L;
+
+    AdaptrisMessage result = producer.doRequest(msg, dest, timeout);
+
+    assertSame(cannedReply, result);
+    assertEquals(dest, captured[0]);
+    assertEquals(timeout, ((Long) captured[1]).longValue());
   }
 
   @Override
