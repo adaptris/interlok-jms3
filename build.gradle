@@ -92,7 +92,7 @@ sonar {
 }
 
 // Disable gradle module generation since we probably don't want
-// xxx.module files in your repository.
+// xxx.module files in your repository
 allprojects {
   tasks.withType(Jar) {
     metaInf {
