@@ -141,7 +141,6 @@ public abstract class DefinedJmsProducer extends JmsProducerImpl {
     return request(msg, endpoint(msg), timeout);
   }
 
-  @Override
   protected AdaptrisMessage doRequest(AdaptrisMessage msg, String dest, long timeout) throws ProduceException {
     return request(msg, dest, timeout);
   }
@@ -151,7 +150,6 @@ public abstract class DefinedJmsProducer extends JmsProducerImpl {
     produce(msg, endpoint(msg));
   }
 
-  @Override
   protected void doProduce(AdaptrisMessage msg, String dest) throws ProduceException {
     produce(msg, dest);
   }
