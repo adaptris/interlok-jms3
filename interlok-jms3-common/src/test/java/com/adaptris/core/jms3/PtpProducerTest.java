@@ -16,12 +16,64 @@
 
 package com.adaptris.core.jms3;
 
+import com.adaptris.core.AdaptrisMessage;
+import com.adaptris.core.AdaptrisMessageFactory;
+import com.adaptris.core.ProduceException;
 import com.adaptris.core.StandaloneProducer;
 import com.adaptris.core.jms3.activemq.BasicActiveMqImplementation;
 import com.adaptris.core.jms3.activemq.EmbeddedArtemis;
+import org.junit.jupiter.api.Test;
+
+import static org.junit.jupiter.api.Assertions.assertEquals;
+import static org.junit.jupiter.api.Assertions.assertSame;
 
 public class PtpProducerTest extends BasicJmsProducerCase {
 
+  @Test
+  public void testDoProduceDelegatesToProduce() throws Exception {
+    final String[] capturedDest = new String[1];
+    AdaptrisMessage msg = AdaptrisMessageFactory.getDefaultInstance().newMessage("payload");
+
+    PtpProducer producer = new PtpProducer() {
+      @Override
+      public void produce(AdaptrisMessage m, String dest) throws ProduceException {
+        capturedDest[0] = dest;
+        assertSame(msg, m);
+      }
+    };
+
+    String dest = "queue:TestQueue";
+    producer.doProduce(msg, dest);
+
+    assertEquals(dest, capturedDest[0]);
+  }
+
+  @Test
+  public void testDoRequestDelegatesToRequest() throws Exception {
+    AdaptrisMessage msg = AdaptrisMessageFactory.getDefaultInstance().newMessage("request-payload");
+    AdaptrisMessage cannedReply = AdaptrisMessageFactory.getDefaultInstance().newMessage("reply-payload");
+
+    final Object[] captured = new Object[2]; // [0]=dest, [1]=timeout
+
+    PtpProducer producer = new PtpProducer() {
+      @Override
+      public AdaptrisMessage request(AdaptrisMessage m, String dest, long timeout) throws ProduceException {
+        captured[0] = dest;
+        captured[1] = timeout;
+        assertSame(msg, m);
+        return cannedReply;
+      }
+    };
+
+    String dest = "queue:RequestQueue";
+    long timeout = 2000L;
+
+    AdaptrisMessage result = producer.doRequest(msg, dest, timeout);
+
+    assertSame(cannedReply, result);
+    assertEquals(dest, captured[0]);
+    assertEquals(timeout, ((Long) captured[1]).longValue());
+  }
 
   /**
    * @see com.adaptris.core.ExampleConfigCase#retrieveObjectForSampleConfig()

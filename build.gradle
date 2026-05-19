@@ -2,11 +2,11 @@ import org.apache.tools.ant.taskdefs.condition.Os
 import org.apache.tools.ant.filters.*
 
 plugins {
-  id "com.github.spotbugs" version "6.0.27" apply false
-  id "org.sonarqube" version "6.0.1.5171"
-  id "org.owasp.dependencycheck" version "11.1.1" apply false
-  id "io.freefair.lombok" version "8.11" apply false
-  id "org.gradle.test-retry" version "1.6.0" apply false
+  id "com.github.spotbugs" version "6.4.4" apply false
+  id "org.sonarqube" version "6.3.1.5724"
+  id "org.owasp.dependencycheck" version "12.1.8" apply false
+  id "io.freefair.lombok" version "8.14.2" apply false
+  id "org.gradle.test-retry" version "1.6.4" apply false
 }
 
 ext {
@@ -24,7 +24,7 @@ ext {
   interlokCommonJavadocs= project.findProperty('interlokJavadocs') ?: javadocsBaseUrl + "/interlok-common/" + interlokCoreVersion
   organizationName = "Adaptris Ltd"
   organizationUrl = "http://interlok.adaptris.net"
-  slf4jVersion = '2.0.16'
+  slf4jVersion = '2.0.17'
   mockitoVersion = '5.2.0'
   junitJupiterVersion = '5.11.4'
 }
@@ -92,7 +92,7 @@ sonar {
 }
 
 // Disable gradle module generation since we probably don't want
-// xxx.module files in your repository.
+// xxx.module files in your repository
 allprojects {
   tasks.withType(Jar) {
     metaInf {
@@ -174,7 +174,7 @@ subprojects {
     api ("com.adaptris:interlok-core-apt:$interlokCoreVersion") { changing= true}
     implementation ("org.slf4j:slf4j-api:$slf4jVersion")
     implementation ("org.slf4j:jcl-over-slf4j:$slf4jVersion")
-
+	api ("commons-beanutils:commons-beanutils:1.11.0")
     annotationProcessor ("com.adaptris:interlok-core-apt:$interlokCoreVersion") { changing= true}
   	testImplementation ("org.junit.jupiter:junit-jupiter-engine:$junitJupiterVersion")
     testImplementation "org.slf4j:slf4j-simple:$slf4jVersion"
@@ -336,7 +336,11 @@ subprojects {
     }
     analyzers {
       assemblyEnabled=false
-      knownExploitedURL=project.findProperty('dependencyCheckKnownExploitedURL')
+	  ossIndex {
+        username = System.getenv("OSS_INDEX_USERNAME")
+        password = System.getenv("OSS_INDEX_PASSWORD")
+        warnOnlyOnRemoteErrors = true
+      }
     }
   }
 

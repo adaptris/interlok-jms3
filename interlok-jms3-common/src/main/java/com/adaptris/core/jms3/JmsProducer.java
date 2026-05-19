@@ -95,6 +95,10 @@ public class JmsProducer extends JmsProducerImpl {
     super.prepare();
   }
 
+  protected void doProduce(AdaptrisMessage msg, String dest) throws ProduceException {
+    produce(msg, dest);
+  }
+
   public void produce(AdaptrisMessage msg, String dest) throws ProduceException {
     try {
       setupSession(msg);
@@ -123,6 +127,10 @@ public class JmsProducer extends JmsProducerImpl {
     }
     captureOutgoingMessageDetails(jmsMsg, msg);
     log.info("msg produced to destination [{}]", jmsDest);
+  }
+
+  protected AdaptrisMessage doRequest(AdaptrisMessage msg, String dest, long timeout) throws ProduceException {
+    return request(msg, dest, timeout);
   }
 
   public AdaptrisMessage request(AdaptrisMessage msg, String dest, long timeout) throws ProduceException {
