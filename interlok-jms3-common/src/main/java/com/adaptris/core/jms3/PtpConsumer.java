@@ -18,7 +18,7 @@ package com.adaptris.core.jms3;
 
 import jakarta.jms.JMSException;
 import jakarta.jms.MessageConsumer;
-import javax.validation.constraints.NotBlank;
+import jakarta.validation.constraints.NotBlank;
 
 import com.adaptris.annotation.AdapterComponent;
 import com.adaptris.annotation.ComponentProfile;

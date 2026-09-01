@@ -26,6 +26,7 @@ import static org.junit.jupiter.api.Assertions.assertTrue;
 import static org.junit.jupiter.api.Assertions.fail;
 
 import java.util.Map;
+import java.util.Random;
 import java.util.concurrent.TimeUnit;
 
 import jakarta.jms.Destination;
@@ -41,6 +42,7 @@ import jakarta.jms.TopicSubscriber;
 import org.apache.activemq.artemis.jms.client.ActiveMQConnection;
 import org.apache.activemq.artemis.jms.client.ActiveMQMessageProducer;
 import org.apache.activemq.artemis.jms.client.ActiveMQSession;
+import org.apache.commons.lang3.RandomStringUtils;
 import org.junit.jupiter.api.AfterAll;
 import org.junit.jupiter.api.BeforeAll;
 import org.junit.jupiter.api.Test;
@@ -86,7 +88,7 @@ public abstract class BasicJmsProducerCase
   // INTERLOK-2121
   @Test
   public void testProducerSession_Invalided() throws Exception {
-    DefinedJmsProducer producer = createProducer(getName());
+    DefinedJmsProducer producer = createProducer(getName()+RandomStringUtils.randomAlphanumeric(10));
     StandaloneProducer standaloneProducer = new StandaloneProducer(activeMqBroker.getJmsConnection(), producer);
     try {
       start(standaloneProducer);
@@ -102,7 +104,7 @@ public abstract class BasicJmsProducerCase
 
   @Test
   public void testProduce_CaptureOutgoingMessageDetails() throws Exception {
-    DefinedJmsProducer producer = createProducer(getName());
+    DefinedJmsProducer producer = createProducer(getName()+RandomStringUtils.randomAlphanumeric(10));
     producer.setCaptureOutgoingMessageDetails(true);
     StandaloneProducer standaloneProducer = new StandaloneProducer(activeMqBroker.getJmsConnection(), producer);
     try {

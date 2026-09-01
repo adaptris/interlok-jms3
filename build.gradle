@@ -10,8 +10,8 @@ plugins {
 }
 
 ext {
-  interlokCoreVersion = project.findProperty('interlokCoreVersion') ?: '5.0-SNAPSHOT'
-  releaseVersion = project.findProperty('releaseVersion') ?: '5.0-SNAPSHOT'
+  interlokCoreVersion = project.findProperty('interlokCoreVersion') ?: '5.1-SNAPSHOT'
+  releaseVersion = project.findProperty('releaseVersion') ?: '5.1-SNAPSHOT'
   nexusBaseUrl = project.findProperty('nexusBaseUrl') ?: 'https://nexus.adaptris.net/nexus'
   mavenPublishUrl = project.findProperty('mavenPublishUrl') ?: nexusBaseUrl + '/content/repositories/snapshots'
   javadocsBaseUrl = nexusBaseUrl + "/content/sites/javadocs/com/adaptris"
@@ -126,6 +126,7 @@ subprojects {
   lombok.disableConfig = true
 
   repositories {
+    mavenLocal()
     mavenCentral() {
       content {
         excludeGroupByRegex "com\\.adaptris.*"
@@ -170,6 +171,7 @@ subprojects {
 
   // In this section you declare the dependencies for your production and test code
   dependencies {
+    api ("jakarta.validation:jakarta.validation-api:3.0.0")
     api ("com.adaptris:interlok-core:$interlokCoreVersion") { changing= true}
     api ("com.adaptris:interlok-core-apt:$interlokCoreVersion") { changing= true}
     implementation ("org.slf4j:slf4j-api:$slf4jVersion")

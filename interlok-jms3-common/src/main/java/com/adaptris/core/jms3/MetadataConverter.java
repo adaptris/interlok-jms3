@@ -2,8 +2,8 @@ package com.adaptris.core.jms3;
 
 import jakarta.jms.JMSException;
 import jakarta.jms.Message;
-import javax.validation.Valid;
-import javax.validation.constraints.NotNull;
+import jakarta.validation.Valid;
+import jakarta.validation.constraints.NotNull;
 import org.apache.commons.lang3.BooleanUtils;
 import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;

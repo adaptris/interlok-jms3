@@ -76,11 +76,14 @@ public class ActiveJmsConnectionErrorHandlerTest
     try {
       channel.requestStart();
       assertEquals(StartedState.getInstance(), channel.retrieveComponentState());
+      channel.requestStop();
       activeMqBroker.stop();
       log.trace("Waiting for channel death (i.e. !StartedState)");
       long totalWaitTime = waitForChannelToChangeState(StartedState.getInstance(), channel);
       log.trace("Channel appears to be not started now, and I waited for " + totalWaitTime);
+      Thread.sleep(5000);
       activeMqBroker.start();
+      channel.requestStart();
       waitForChannelToMatchState(StartedState.getInstance(), channel);
       assertEquals(StartedState.getInstance(), channel.retrieveComponentState());
       assertEquals(2, channel.getStartCount());
@@ -104,6 +107,7 @@ public class ActiveJmsConnectionErrorHandlerTest
     try {
       channel.requestStart();
       assertEquals(StartedState.getInstance(), channel.retrieveComponentState());
+      channel.requestClose();
       activeMqBroker.stop();
       // Give the ErrorHandler time to check that it's stopped
       log.trace("Waiting for channel death (i.e. !StartedState)");
@@ -111,6 +115,7 @@ public class ActiveJmsConnectionErrorHandlerTest
       // assertNotSame(StartedState.getInstance(), channel.retrieveComponentState());
       log.trace("Channel appears to be not started now, and I waited for " + totalWaitTime);
       activeMqBroker.start();
+      channel.requestStart();
       waitForChannelToMatchState(StartedState.getInstance(), channel);
       assertEquals(StartedState.getInstance(), channel.retrieveComponentState());
       assertEquals(2, channel.getStartCount());

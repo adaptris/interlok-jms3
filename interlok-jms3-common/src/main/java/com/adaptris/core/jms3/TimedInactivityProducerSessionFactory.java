@@ -21,7 +21,7 @@ import java.util.Date;
 import java.util.concurrent.TimeUnit;
 
 import jakarta.jms.JMSException;
-import javax.validation.Valid;
+import jakarta.validation.Valid;
 
 import com.adaptris.annotation.AutoPopulated;
 import com.adaptris.core.AdaptrisMessage;

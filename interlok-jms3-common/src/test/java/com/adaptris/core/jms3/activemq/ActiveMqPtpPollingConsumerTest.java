@@ -22,8 +22,10 @@ import static com.adaptris.interlok.junit.scaffolding.BaseCase.waitForMessages;
 import static com.adaptris.interlok.junit.scaffolding.jms.JmsProducerCase.assertMessages;
 import static com.adaptris.interlok.junit.scaffolding.jms.JmsProducerCase.createMessage;
 
+import java.util.Random;
 import java.util.concurrent.TimeUnit;
 
+import org.apache.commons.lang3.RandomStringUtils;
 import org.junit.jupiter.api.AfterAll;
 import org.junit.jupiter.api.BeforeAll;
 import org.junit.jupiter.api.Test;
@@ -62,9 +64,9 @@ public class ActiveMqPtpPollingConsumerTest {
 
     int msgCount = 5;
     final StandaloneProducer sender = new StandaloneProducer(activeMqBroker.getJmsConnection(),
-        new PtpProducer().withQueue((info.getDisplayName())));
+        new PtpProducer().withQueue(info.getDisplayName()+"-1"));
     final StandaloneConsumer receiver =
-        createConsumer(activeMqBroker, "testProduceConsume", info.getDisplayName());
+        createConsumer(activeMqBroker, "testProduceConsume", info.getDisplayName()+"-1");
     try {
       MockMessageListener jms = new MockMessageListener();
       receiver.registerAdaptrisMessageListener(jms);
