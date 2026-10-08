@@ -33,6 +33,7 @@ import javax.naming.Context;
 import org.apache.activemq.artemis.core.config.Configuration;
 import org.apache.activemq.artemis.core.config.impl.ConfigurationImpl;
 import org.apache.activemq.artemis.core.server.embedded.EmbeddedActiveMQ;
+import org.apache.activemq.artemis.core.settings.impl.AddressSettings;
 import org.apache.activemq.artemis.jms.client.ActiveMQConnection;
 import org.apache.activemq.artemis.jms.client.ActiveMQJMSConnectionFactory;
 import org.apache.activemq.artemis.jms.client.ActiveMQSession;
@@ -184,6 +185,8 @@ public class EmbeddedArtemis {
     config.addAcceptorConfiguration("tcp", "tcp://127.0.0.1:" + port);
     config.setPersistenceEnabled(false);
     config.setBrokerInstance(brokerDataDir);
+    // Rollback tests must retain messages instead of exhausting the broker's delivery limit.
+    config.addAddressSetting("#", new AddressSettings().setMaxDeliveryAttempts(-1));
 
     EmbeddedActiveMQ embeddedArtemis = new EmbeddedActiveMQ();
     embeddedArtemis.setConfiguration(config);
@@ -191,19 +194,12 @@ public class EmbeddedArtemis {
     return embeddedArtemis;
   }
 
-  public void destroy() {
-    new Thread(new Runnable() {
-
-      @Override
-      public void run() {
-        release(port);
-        try {
-          stop();
-        } catch (Exception e) {
-
-        }
-      }
-    }).start();
+  public void destroy() throws Exception {
+    try {
+      stop();
+    } finally {
+      release(port);
+    }
   }
 
   public void stop() throws Exception {

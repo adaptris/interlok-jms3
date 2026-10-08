@@ -2,15 +2,16 @@ ext {
   componentName = 'Interlok Messaging/Jakarta JMS'
   componentDesc = "Common components for accessing JMS 3 systems."
   delombokTargetDir = new File("${project.projectDir}/src/main/generated")
+  artemisVersion = '2.57.0'
 }
 
 dependencies {
-  implementation (platform("io.netty:netty-bom:4.2.13.Final"))
+  implementation (platform("io.netty:netty-bom:4.2.19.Final"))
   implementation ("jakarta.jms:jakarta.jms-api:3.1.0")
-  implementation ("org.apache.activemq:artemis-jakarta-client:2.41.0")
+  implementation ("org.apache.artemis:artemis-jakarta-client:$artemisVersion")
   implementation ("org.apache.geronimo.specs:geronimo-jms_2.0_spec:1.0-alpha-2")
   
-  testImplementation ("org.apache.activemq:artemis-server:2.41.0")
+  testImplementation ("org.apache.artemis:artemis-server:$artemisVersion")
 }
 
 task javadocJar(type: Jar, dependsOn: javadoc) {
