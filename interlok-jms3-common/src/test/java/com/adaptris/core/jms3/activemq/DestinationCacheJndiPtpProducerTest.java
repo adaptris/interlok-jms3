@@ -27,8 +27,6 @@ import java.util.Map;
 import jakarta.jms.Queue;
 import jakarta.jms.Topic;
 
-import org.junit.jupiter.api.AfterAll;
-import org.junit.jupiter.api.BeforeAll;
 import org.junit.jupiter.api.Test;
 import org.junit.jupiter.api.TestInfo;
 
@@ -40,18 +38,6 @@ import com.adaptris.util.KeyValuePair;
 
 public class DestinationCacheJndiPtpProducerTest extends JndiPtpProducerCase {
 
-  @BeforeAll
-  public static void setUpAll() throws Exception {
-    activeMqBroker = new EmbeddedArtemis();
-    activeMqBroker.start();
-  }
-  
-  @AfterAll
-  public static void tearDownAll() throws Exception {
-    if(activeMqBroker != null)
-      activeMqBroker.destroy();
-  }
-  
   @Override
   protected CachedDestinationJndiImplementation createVendorImplementation() {
     return new CachedDestinationJndiImplementation();

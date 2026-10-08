@@ -24,6 +24,7 @@ import java.util.ArrayList;
 import java.util.List;
 import java.util.concurrent.Executors;
 import java.util.concurrent.ScheduledExecutorService;
+import java.util.concurrent.ScheduledFuture;
 import java.util.concurrent.TimeUnit;
 
 import org.apache.commons.lang3.StringUtils;
@@ -109,6 +110,7 @@ public abstract class FailoverJmsProducerCase
 
   @Test
   public void testEventuallyConnects() throws Exception {
+    activeMqBroker.stop();
     FailoverJmsConnection connection = new FailoverJmsConnection();
     connection.addConnection(new JmsConnection(new BasicActiveMqImplementation("tcp://localhost:123456")));
     connection.addConnection(activeMqBroker.getJmsConnection());
@@ -117,7 +119,7 @@ public abstract class FailoverJmsProducerCase
     connection.setRegisterOwner(true);
     ScheduledExecutorService es = Executors.newSingleThreadScheduledExecutor();
     try {
-      es.schedule(new Runnable() {
+      ScheduledFuture<?> brokerStart = es.schedule(new Runnable() {
 
         @Override
         public void run() {
@@ -131,6 +133,7 @@ public abstract class FailoverJmsProducerCase
 
       }, 2L, TimeUnit.SECONDS);
       LifecycleHelper.initAndStart(connection);
+      brokerStart.get();
     }
     finally {
       LifecycleHelper.stopAndClose(connection);

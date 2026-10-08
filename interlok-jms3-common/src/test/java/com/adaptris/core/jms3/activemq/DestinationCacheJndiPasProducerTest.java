@@ -22,8 +22,6 @@ import static com.adaptris.interlok.junit.scaffolding.BaseCase.stop;
 import static com.adaptris.interlok.junit.scaffolding.BaseCase.waitForMessages;
 import static com.adaptris.interlok.junit.scaffolding.jms.JmsProducerCase.assertMessages;
 
-import org.junit.jupiter.api.AfterAll;
-import org.junit.jupiter.api.BeforeAll;
 import org.junit.jupiter.api.Test;
 import org.junit.jupiter.api.TestInfo;
 
@@ -37,18 +35,6 @@ import com.adaptris.core.stubs.MockMessageListener;
 
 public class DestinationCacheJndiPasProducerTest extends JndiPasProducerCase {
 
-  @BeforeAll
-  public static void setUpAll() throws Exception {
-    activeMqBroker = new EmbeddedArtemis();
-    activeMqBroker.start();
-  }
-  
-  @AfterAll
-  public static void tearDownAll() throws Exception {
-    if(activeMqBroker != null)
-      activeMqBroker.destroy();
-  }
-  
   @Override
   protected CachedDestinationJndiImplementation createVendorImplementation() {
     return new CachedDestinationJndiImplementation();

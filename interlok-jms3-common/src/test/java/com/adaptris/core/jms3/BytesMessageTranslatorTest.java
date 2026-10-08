@@ -33,8 +33,6 @@ import jakarta.jms.Message;
 import jakarta.jms.MessageEOFException;
 import jakarta.jms.Session;
 
-import org.junit.jupiter.api.AfterAll;
-import org.junit.jupiter.api.BeforeAll;
 import org.junit.jupiter.api.Test;
 import org.junit.jupiter.api.TestInfo;
 import org.mockito.Mockito;
@@ -42,7 +40,6 @@ import org.mockito.Mockito;
 import com.adaptris.core.AdaptrisMessage;
 import com.adaptris.core.AdaptrisMessageFactory;
 import com.adaptris.core.MetadataElement;
-import com.adaptris.core.jms3.activemq.EmbeddedArtemis;
 import com.adaptris.core.metadata.RegexMetadataFilter;
 import com.adaptris.core.metadata.RemoveAllMetadataFilter;
 import com.adaptris.core.stubs.DefectiveMessageFactory;
@@ -50,18 +47,6 @@ import com.adaptris.core.stubs.DefectiveMessageFactory;
 @SuppressWarnings("deprecation")
 public class BytesMessageTranslatorTest extends GenericMessageTypeTranslatorCase {
 
-  @BeforeAll
-  public static void setUpAll() throws Exception {
-    activeMqBroker = new EmbeddedArtemis();
-    activeMqBroker.start();
-  }
-  
-  @AfterAll
-  public static void tearDownAll() throws Exception {
-    if(activeMqBroker != null)
-      activeMqBroker.destroy();
-  }
-  
   private static byte[] BYTES = new byte[256]; {
     for(int i=0; i<BYTES.length; i++) {
       BYTES[i] = (byte)i;

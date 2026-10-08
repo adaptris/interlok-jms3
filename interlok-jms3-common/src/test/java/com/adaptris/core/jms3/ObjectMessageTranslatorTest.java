@@ -29,28 +29,13 @@ import jakarta.jms.Message;
 import jakarta.jms.ObjectMessage;
 import jakarta.jms.Session;
 
-import org.junit.jupiter.api.AfterAll;
-import org.junit.jupiter.api.BeforeAll;
 import org.junit.jupiter.api.Test;
 
 import com.adaptris.core.AdaptrisMessage;
 import com.adaptris.core.AdaptrisMessageFactory;
-import com.adaptris.core.jms3.activemq.EmbeddedArtemis;
 
 public class ObjectMessageTranslatorTest extends GenericMessageTypeTranslatorCase {
 
-  @BeforeAll
-  public static void setUpAll() throws Exception {
-    activeMqBroker = new EmbeddedArtemis();
-    activeMqBroker.start();
-  }
-  
-  @AfterAll
-  public static void tearDownAll() throws Exception {
-    if(activeMqBroker != null)
-      activeMqBroker.destroy();
-  }
-  
   @Test
   public void testObjectMessageToAdaptrisMessage() throws Exception {
     MessageTypeTranslatorImp trans = new ObjectMessageTranslator();
