@@ -41,4 +41,13 @@ public class JmsAsyncProducerEventHandlerTest {
         // Verify that a warning is logged for the unknown message
         verify(mockLogger).warn("Received success callback for an unknown message {}", "unknownMessageId");
     }
+
+    @Test
+    public void testOnCompletionWhenCallbacksAreDisabled() {
+        eventHandler.setAcceptSuccessCallbacks(false);
+
+        eventHandler.onCompletion(mock(Message.class));
+
+        verify(mockLogger).warn("Executing producer restart, not accepting further success callbacks until complete.");
+    }
 }

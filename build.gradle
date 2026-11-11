@@ -10,8 +10,10 @@ plugins {
 }
 
 ext {
-  interlokCoreVersion = project.findProperty('interlokCoreVersion') ?: '5.0-SNAPSHOT'
-  releaseVersion = project.findProperty('releaseVersion') ?: '5.0-SNAPSHOT'
+  interlokCatalogVersion = project.findProperty('interlokCatalogVersion') ?: '5.0-SNAPSHOT'
+  interlokCoreVersion = project.findProperty('interlokCoreVersion') ?: interlokCatalogVersion
+  releaseVersion = project.findProperty('releaseVersion') ?: interlokCatalogVersion
+  interlokCatalogPlatform = "com.adaptris:interlok-version-catalog:${interlokCatalogVersion}"
   nexusBaseUrl = project.findProperty('nexusBaseUrl') ?: 'https://nexus.adaptris.net/nexus'
   mavenPublishUrl = project.findProperty('mavenPublishUrl') ?: nexusBaseUrl + '/content/repositories/snapshots'
   javadocsBaseUrl = nexusBaseUrl + "/content/sites/javadocs/com/adaptris"
@@ -24,9 +26,6 @@ ext {
   interlokCommonJavadocs= project.findProperty('interlokJavadocs') ?: javadocsBaseUrl + "/interlok-common/" + interlokCoreVersion
   organizationName = "Adaptris Ltd"
   organizationUrl = "http://interlok.adaptris.net"
-  slf4jVersion = '2.0.17'
-  mockitoVersion = '5.2.0'
-  junitJupiterVersion = '5.11.4'
 }
 
 ext.buildDetails = [
@@ -126,6 +125,7 @@ subprojects {
   lombok.disableConfig = true
 
   repositories {
+    mavenLocal()
     mavenCentral() {
       content {
         excludeGroupByRegex "com\\.adaptris.*"
@@ -145,6 +145,10 @@ subprojects {
     javadoc {}
     umlDoclet {}
     offlineJavadocPackages {}
+    lombokVersionCatalog {
+      canBeConsumed = false
+      canBeResolved = true
+    }
     all*.exclude group: 'c3p0'
     all*.exclude group: 'commons-logging'
     all*.exclude group: 'javamail'
@@ -170,23 +174,37 @@ subprojects {
 
   // In this section you declare the dependencies for your production and test code
   dependencies {
-    api ("com.adaptris:interlok-core:$interlokCoreVersion") { changing= true}
-    api ("com.adaptris:interlok-core-apt:$interlokCoreVersion") { changing= true}
-    implementation ("org.slf4j:slf4j-api:$slf4jVersion")
-    implementation ("org.slf4j:jcl-over-slf4j:$slf4jVersion")
-	api ("commons-beanutils:commons-beanutils:1.11.0")
-    annotationProcessor ("com.adaptris:interlok-core-apt:$interlokCoreVersion") { changing= true}
-  	testImplementation ("org.junit.jupiter:junit-jupiter-engine:$junitJupiterVersion")
-    testImplementation "org.slf4j:slf4j-simple:$slf4jVersion"
-    testImplementation ("com.adaptris:interlok-stubs:$interlokCoreVersion") { changing= true }
-    testImplementation ("org.slf4j:jcl-over-slf4j:$slf4jVersion")
-    testImplementation ("org.mockito:mockito-core:$mockitoVersion")
-    testImplementation ("org.mockito:mockito-inline:$mockitoVersion")
-    javadoc("com.adaptris:interlok-core-apt:$interlokCoreVersion") { changing= true}
-    umlDoclet("nl.talsmasoftware:umldoclet:2.2.1")
+    api platform(interlokCatalogPlatform)
+    implementation platform(interlokCatalogPlatform)
+    compileOnly platform(interlokCatalogPlatform)
+    annotationProcessor platform(interlokCatalogPlatform)
+    testImplementation platform(interlokCatalogPlatform)
+    testCompileOnly platform(interlokCatalogPlatform)
+    testRuntimeOnly platform(interlokCatalogPlatform)
+    javadoc platform(interlokCatalogPlatform)
+    umlDoclet platform(interlokCatalogPlatform)
+    offlineJavadocPackages platform(interlokCatalogPlatform)
+    lombokVersionCatalog platform(interlokCatalogPlatform)
+    lombokVersionCatalog ("org.projectlombok:lombok")
 
-    offlineJavadocPackages ("com.adaptris:interlok-core:$interlokCoreVersion:javadoc@jar") { changing= true}
-    offlineJavadocPackages ("com.adaptris:interlok-common:$interlokCoreVersion:javadoc@jar") { changing= true}
+    api ("com.adaptris:interlok-core") { changing= true}
+    api ("com.adaptris:interlok-core-apt") { changing= true}
+    implementation ("org.slf4j:slf4j-api")
+    implementation ("org.slf4j:jcl-over-slf4j")
+	api ("commons-beanutils:commons-beanutils")
+    annotationProcessor ("com.adaptris:interlok-core-apt") { changing= true}
+    testImplementation ("org.junit.jupiter:junit-jupiter-engine")
+    testImplementation "org.slf4j:slf4j-simple"
+    testImplementation ("com.adaptris:interlok-stubs") { changing= true }
+    testImplementation ("org.slf4j:jcl-over-slf4j")
+    testImplementation ("org.mockito:mockito-core")
+    testImplementation ("org.mockito:mockito-inline")
+    testRuntimeOnly ("org.junit.platform:junit-platform-launcher")
+    javadoc("com.adaptris:interlok-core-apt") { changing= true}
+    umlDoclet("nl.talsmasoftware:umldoclet")
+
+    offlineJavadocPackages (group: "com.adaptris", name: "interlok-core", classifier: "javadoc", ext: "jar") { changing= true}
+    offlineJavadocPackages (group: "com.adaptris", name: "interlok-common", classifier: "javadoc", ext: "jar") { changing= true}
   }
 
   javadoc {
@@ -366,7 +384,9 @@ subprojects {
   }
 
   lombok {
-    version = "1.18.22"
+    version = configurations.lombokVersionCatalog.resolvedConfiguration.firstLevelModuleDependencies
+        .find { it.moduleGroup == "org.projectlombok" && it.moduleName == "lombok" }
+        .moduleVersion
   }
 
   check.dependsOn jacocoTestReport
