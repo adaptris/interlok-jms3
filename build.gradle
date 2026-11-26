@@ -117,8 +117,8 @@ subprojects {
   apply plugin: "io.freefair.lombok"
   apply plugin: "org.gradle.test-retry"
 
-  sourceCompatibility = JavaVersion.VERSION_17
-  targetCompatibility = JavaVersion.VERSION_17
+  sourceCompatibility = JavaVersion.VERSION_21
+  targetCompatibility = JavaVersion.VERSION_21
   group   = 'com.adaptris'
   version = releaseVersion
   def versionDir = "$buildDir/version"
